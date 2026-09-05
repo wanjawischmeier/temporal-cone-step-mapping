@@ -144,7 +144,7 @@ public partial class @OrbitCameraControls: IInputActionCollection2, IDisposable
                 {
                     ""name"": """",
                     ""id"": ""cf2b9eea-90ea-402e-a4dc-d76bf9f3b58f"",
-                    ""path"": ""<Mouse>/rightButton"",
+                    ""path"": ""<Mouse>/leftButton"",
                     ""interactions"": """",
                     ""processors"": """",
                     ""groups"": """",
