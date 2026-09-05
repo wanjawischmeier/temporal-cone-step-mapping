@@ -11,6 +11,8 @@ public class ConeStepMrtRendererFeature : ScriptableRendererFeature
     [Tooltip("Graphics format for the MRT render textures.")]
     public GraphicsFormat mrtGraphicsFormat = GraphicsFormat.R16G16B16A16_SFloat;
     public bool showDebug = false;
+    [Tooltip("Write the number of cone-map samples per pixel to an R32_UInt debug target.")]
+    public bool debugStepCount = false;
 
     ConeStepMrtPass m_ConeStepPass;
 
@@ -22,7 +24,7 @@ public class ConeStepMrtRendererFeature : ScriptableRendererFeature
 
     public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData)
     {
-        m_ConeStepPass.Setup(layerMask, filterMode, mrtGraphicsFormat, showDebug);
+        m_ConeStepPass.Setup(layerMask, filterMode, mrtGraphicsFormat, showDebug, debugStepCount);
         renderer.EnqueuePass(m_ConeStepPass);
     }
 

@@ -19,6 +19,7 @@ MonoBehaviour:
   filterMode: 1
   mrtGraphicsFormat: 48
   showDebug: 0
+  debugStepCount: 1
 --- !u!114 &11400000
 MonoBehaviour:
   m_ObjectHideFlags: 0

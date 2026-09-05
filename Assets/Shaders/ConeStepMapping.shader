@@ -46,6 +46,9 @@ Shader "Custom/ConeStepMapping"
             Name "ConeStepMappingMRT"
             Tags { "LightMode" = "ConeStepMRT" }
             Blend SrcAlpha OneMinusSrcAlpha, One OneMinusSrcAlpha
+            // Integer targets cannot blend. Target 2 is only attached by the
+            // renderer feature's step-count debug toggle.
+            Blend 2 Off
 
             HLSLPROGRAM
 
@@ -81,6 +84,7 @@ Shader "Custom/ConeStepMapping"
             {
                 half4 color0 : SV_Target0;
                 half4 color1 : SV_Target1;
+                uint stepCount : SV_Target2;
                 float depth : SV_Depth;
             };
 
@@ -93,6 +97,7 @@ Shader "Custom/ConeStepMapping"
                 float error;
                 bool wasHit;
                 bool penetrated; // relaxed mode only, diagnostic
+                uint steps;
             };
 
             // --- Textures & Samplers ---
@@ -205,10 +210,12 @@ Shader "Custom/ConeStepMapping"
                 float error = 1.0;
                 int iterations = (int)_MaxIterations;
                 int i = 0;
+                uint stepCount = 0;
 
                 [loop]
                 for (i = 0; i < iterations; i++)
                 {
+                    stepCount++;
                     float2 p = u0 + ds.xy * sc;
                     float height = SampleHeight(p, heightMask);
                     error = 1.0 - ds.z * sc - height;
@@ -223,6 +230,7 @@ Shader "Custom/ConeStepMapping"
                 result.error = error;
                 result.wasHit = i < iterations;
                 result.penetrated = false;
+                result.steps = stepCount;
                 return result;
             }
 
@@ -240,10 +248,12 @@ Shader "Custom/ConeStepMapping"
                 bool penetrated = false;
                 int iterations = (int)_MaxIterations;
                 int i = 0;
+                uint stepCount = 0;
 
                 [loop]
                 for (i = 0; i < iterations; i++)
                 {
+                    stepCount++;
                     float2 p = u0 + ds.xy * sc;
                     float height = SampleHeight(p, heightMask);
                     error = 1.0 - ds.z * sc - height;
@@ -270,6 +280,7 @@ Shader "Custom/ConeStepMapping"
                     [loop]
                     for (int j = 0; j < binaryIterations; j++)
                     {
+                        stepCount++;
                         float mid = 0.5 * (lo + hi);
                         float2 pm = u0 + ds.xy * mid;
                         float hMid = SampleHeight(pm, heightMask);
@@ -295,6 +306,7 @@ Shader "Custom/ConeStepMapping"
                 result.error = error;
                 result.wasHit = penetrated || (i < iterations);
                 result.penetrated = penetrated;
+                result.steps = stepCount;
                 return result;
             }
 
@@ -356,6 +368,7 @@ Shader "Custom/ConeStepMapping"
             FragmentOutput frag(Varyings IN)
             {
                 FragmentOutput output;
+                output.stepCount = 0;
 
                 float3 viewDir = normalize(IN.tangentViewDir);
 
@@ -395,6 +408,8 @@ Shader "Custom/ConeStepMapping"
                 {
                     result = MarchConservative(IN.uv, ds, dominantAxis, coneChannelMask, heightMask, startSc, minStep);
                 }
+
+                output.stepCount = result.steps;
 
                 // Write our current state to MRT1 for the next frame.
                 // R, G = current UV, B = last error, A = valid pixel flag.

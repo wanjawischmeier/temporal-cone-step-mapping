@@ -26,6 +26,7 @@ public class ConeStepMrtPass : ScriptableRenderPass
     {
         public RTHandle RT_A;
         public RTHandle RT_B;
+        public RTHandle stepCount;
         public int passIndex;
         public Matrix4x4 prevViewProjMatrix = Matrix4x4.identity;
         public bool isFirstFrame = true;
@@ -34,17 +35,26 @@ public class ConeStepMrtPass : ScriptableRenderPass
     static readonly ShaderTagId kShaderTagId = new ShaderTagId("ConeStepMRT");
 
     LayerMask m_LayerMask;
-    Dictionary<Camera, CameraHistory> m_Histories = new Dictionary<Camera, CameraHistory>();
+    static readonly Dictionary<Camera, CameraHistory> s_Histories = new Dictionary<Camera, CameraHistory>();
     FilterMode m_FilterMode;
     GraphicsFormat m_MrtGraphicsFormat;
     bool m_ShowDebug;
+    bool m_DebugStepCount;
 
-    public void Setup(LayerMask layerMask, FilterMode filterMode, GraphicsFormat mrtGraphicsFormat, bool showDebug = false)
+    public void Setup(LayerMask layerMask, FilterMode filterMode, GraphicsFormat mrtGraphicsFormat, bool showDebug = false, bool debugStepCount = false)
     {
         m_LayerMask = layerMask;
         m_FilterMode = filterMode;
         m_MrtGraphicsFormat = mrtGraphicsFormat;
         m_ShowDebug = showDebug;
+        m_DebugStepCount = debugStepCount;
+    }
+
+    /// <summary>Returns this camera's per-pixel step-count target while debugging is enabled.</summary>
+    public static RenderTexture GetStepCountTexture(Camera camera)
+    {
+        return camera != null && s_Histories.TryGetValue(camera, out var history) && history.stepCount != null
+            ? history.stepCount.rt : null;
     }
 
     public override void RecordRenderGraph(RenderGraph renderGraph, ContextContainer frameData)
@@ -55,10 +65,10 @@ public class ConeStepMrtPass : ScriptableRenderPass
         var lightData = frameData.Get<UniversalLightData>();
 
         var camera = cameraData.camera;
-        if (!m_Histories.TryGetValue(camera, out var history))
+        if (!s_Histories.TryGetValue(camera, out var history))
         {
             history = new CameraHistory();
-            m_Histories[camera] = history;
+            s_Histories[camera] = history;
         }
 
         var colorDesc = cameraData.cameraTargetDescriptor;
@@ -99,6 +109,17 @@ public class ConeStepMrtPass : ScriptableRenderPass
                 name: $"ConeStepMRT_B_{camera.name}");
         }
 
+        if (m_DebugStepCount && (history.stepCount == null ||
+                                 history.stepCount.rt.width != colorDesc.width ||
+                                 history.stepCount.rt.height != colorDesc.height))
+        {
+            history.stepCount?.Release();
+            history.stepCount = RTHandles.Alloc(colorDesc.width, colorDesc.height,
+                colorFormat: GraphicsFormat.R32_UInt,
+                filterMode: FilterMode.Point,
+                name: $"ConeStepCount_{camera.name}");
+        }
+
         // By using an internal pass index per camera instead of Time.frameCount,
         // we guarantee the buffers swap every time this camera renders, even if
         // the game is paused or we are in Edit mode. See ParallaxMrtPass for the
@@ -111,6 +132,20 @@ public class ConeStepMrtPass : ScriptableRenderPass
 
         var previousFrame = renderGraph.ImportTexture(readTexture);
         var mrt1 = renderGraph.ImportTexture(writeTexture);
+        TextureHandle stepCountTexture = default;
+        if (m_DebugStepCount)
+        {
+            stepCountTexture = renderGraph.ImportTexture(history.stepCount);
+            using (var clearBuilder = renderGraph.AddRasterRenderPass<DebugClearPassData>("Clear Cone Step Count", out var clearData))
+            {
+                clearBuilder.AllowPassCulling(false);
+                clearBuilder.SetRenderAttachment(stepCountTexture, 0, AccessFlags.Write);
+                clearBuilder.SetRenderFunc(static (DebugClearPassData data, RasterGraphContext rgContext) =>
+                {
+                    rgContext.cmd.ClearRenderTarget(false, true, Color.clear);
+                });
+            }
+        }
 
         using (var builder = renderGraph.AddRasterRenderPass<MrtPassData>("Cone Step MRT Pass", out var passData))
         {
@@ -137,6 +172,8 @@ public class ConeStepMrtPass : ScriptableRenderPass
             // Write to current frame (different texture)
             builder.SetRenderAttachment(resourceData.activeColorTexture, 0);
             builder.SetRenderAttachment(mrt1, 1);
+            if (m_DebugStepCount)
+                builder.SetRenderAttachment(stepCountTexture, 2);
             builder.SetRenderAttachmentDepth(resourceData.activeDepthTexture, AccessFlags.Write);
 
             builder.SetRenderFunc(static (MrtPassData data, RasterGraphContext rgContext) =>
@@ -150,11 +187,14 @@ public class ConeStepMrtPass : ScriptableRenderPass
 
     public void Cleanup()
     {
-        foreach (var history in m_Histories.Values)
+        foreach (var history in s_Histories.Values)
         {
             history.RT_A?.Release();
             history.RT_B?.Release();
+            history.stepCount?.Release();
         }
-        m_Histories.Clear();
+        s_Histories.Clear();
     }
+
+    class DebugClearPassData { }
 }

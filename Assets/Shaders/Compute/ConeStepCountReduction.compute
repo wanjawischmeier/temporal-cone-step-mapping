@@ -1,0 +1,16 @@
+#pragma kernel AccumulateSteps
+
+Texture2D<uint> _StepCountTexture;
+RWStructuredBuffer<uint> _TotalSteps;
+
+[numthreads(8, 8, 1)]
+void AccumulateSteps(uint3 id : SV_DispatchThreadID)
+{
+    uint width, height;
+    _StepCountTexture.GetDimensions(width, height);
+    if (id.x >= width || id.y >= height)
+        return;
+
+    uint ignored;
+    InterlockedAdd(_TotalSteps[0], _StepCountTexture.Load(int3(id.xy, 0)), ignored);
+}
