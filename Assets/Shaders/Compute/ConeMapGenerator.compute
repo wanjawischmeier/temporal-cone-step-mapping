@@ -1,0 +1,141 @@
+#pragma kernel Initialize
+#pragma kernel GenerateBatch
+#pragma kernel BilinearSafetyPass
+
+// R = height, G = cone ratio (tan of the cone half angle).
+RWTexture2D<float4> _Result;
+Texture2D<float4> _Source;
+Texture2D<float4> _HeightMap;
+
+int2 _Size;
+float2 _UvScale;
+int _HeightChannel;
+int _Algorithm; // 0: conservative, 1: exact relaxed (Algorithm 2 in the paper)
+int _Anisotropic; // 0: Isotropisch, 1: Anisotropisch
+int _CandidateStart;
+int _CandidateCount;
+
+float ReadHeight(int2 p)
+{
+    float4 sampleValue = _HeightMap.Load(int3(p, 0));
+    if (_HeightChannel == 1) return sampleValue.g;
+    if (_HeightChannel == 2) return sampleValue.b;
+    if (_HeightChannel == 3) return sampleValue.a;
+    return sampleValue.r;
+}
+
+bool IsInside(int2 p)
+{
+    return all(p >= 0) && all(p < _Size);
+}
+
+[numthreads(8, 8, 1)]
+void Initialize(uint3 id : SV_DispatchThreadID)
+{
+    if (id.x >= (uint)_Size.x || id.y >= (uint)_Size.y) return;
+    int2 p = id.xy;
+    
+    if (_Anisotropic == 1)
+        _Result[p] = float4(1000.0, 1000.0, 1000.0, 1000.0);
+    else
+        _Result[p] = float4(ReadHeight(p), 1000.0, 0.0, 1.0);
+}
+
+bool IsLimitingTexel(int2 apex, int2 candidate, float candidateHeight)
+{
+    int2 delta = candidate - apex;
+    if (all(delta == 0)) return false;
+
+    int2 direction = int2(sign(delta.x), sign(delta.y));
+    int2 xNeighbour = candidate + int2(direction.x, 0);
+    int2 yNeighbour = candidate + int2(0, direction.y);
+    int2 diagonalNeighbour = candidate + direction;
+    if (!IsInside(xNeighbour) || !IsInside(yNeighbour) || !IsInside(diagonalNeighbour)) return false;
+
+    float h10 = ReadHeight(xNeighbour);
+    float h01 = ReadHeight(yNeighbour);
+    float h11 = ReadHeight(diagonalNeighbour);
+    return candidateHeight > h10 || candidateHeight > h01 || h10 > h11 || h01 > h11;
+}
+
+[numthreads(8, 8, 1)]
+void GenerateBatch(uint3 id : SV_DispatchThreadID)
+{
+    if (id.x >= (uint)_Size.x || id.y >= (uint)_Size.y) return;
+
+    int2 apex = id.xy;
+    float apexHeight = ReadHeight(apex);
+    float4 currentCones = _Result[apex];
+
+    for (int i = 0; i < _CandidateCount; ++i)
+    {
+        int flatIndex = _CandidateStart + i;
+        int2 candidate = int2(flatIndex % _Size.x, flatIndex / _Size.x);
+        if (all(candidate == apex)) continue;
+
+        float candidateHeight = ReadHeight(candidate);
+        float heightDifference = candidateHeight - apexHeight;
+        if (heightDifference <= 0.0) continue;
+
+        // Corrected Relaxed Filter (Bán et al. Algorithm 2):
+        // Überspringt Hänge, die vom Apex wegschauen. 
+        // DAS ERLAUBT dem Ray, frontale Hänge sicher zu penetrieren!
+        if (_Algorithm == 1 && !IsLimitingTexel(apex, candidate, candidateHeight)) continue;
+
+        float2 deltaUv = (float2(candidate - apex) / float2(_Size)) * _UvScale;
+
+        if (_Anisotropic == 1)
+        {
+            // KORREKTUR: Ein Texel schränkt nur noch die Pyramidenfläche seiner DOMINANTEN Achse ein!
+            if (abs(deltaUv.x) >= abs(deltaUv.y))
+            {
+                float ratio = abs(deltaUv.x) / heightDifference;
+                if (deltaUv.x > 0) currentCones.r = min(currentCones.r, ratio); // +X
+                else               currentCones.g = min(currentCones.g, ratio); // -X
+            }
+            else
+            {
+                float ratio = abs(deltaUv.y) / heightDifference;
+                if (deltaUv.y > 0) currentCones.b = min(currentCones.b, ratio); // +Y
+                else               currentCones.a = min(currentCones.a, ratio); // -Y
+            }
+        }
+        else
+        {
+            float ratio = length(deltaUv) / heightDifference;
+            currentCones.g = min(currentCones.g, ratio);
+        }
+    }
+
+    _Result[apex] = currentCones;
+}
+
+// Paper Section 4: taking the 3x3 minimum makes bilinear interpolation conservative.
+[numthreads(8, 8, 1)]
+void BilinearSafetyPass(uint3 id : SV_DispatchThreadID)
+{
+    if (id.x >= (uint)_Size.x || id.y >= (uint)_Size.y) return;
+    int2 p = id.xy;
+    float4 result = _Source.Load(int3(p, 0));
+    float4 safeCone = result;
+    
+    for (int y = -1; y <= 1; ++y)
+    {
+        for (int x = -1; x <= 1; ++x)
+        {
+            int2 neighbour = clamp(p + int2(x, y), int2(0, 0), _Size - 1);
+            float4 neighbourVal = _Source.Load(int3(neighbour, 0));
+            
+            if (_Anisotropic == 1)
+            {
+                // 3x3 Minimum für alle 4 Richtungen
+                safeCone = min(safeCone, neighbourVal);
+            }
+            else
+            {
+                safeCone.g = min(safeCone.g, neighbourVal.g);
+            }
+        }
+    }
+    _Result[p] = safeCone;
+}

@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 11061299565411e4784dca3fb0468e32, type: 3}
+  m_Name: ConeMapGenerator
+  m_EditorClassIdentifier: Assembly-CSharp-Editor::ConeStepMapping.EditorTools.ConeMapGenerator
+  heightMap: {fileID: 0}
+  generatorComputeShader: {fileID: 7200000, guid: db287946e220bf14793c9c1e64c2d5b3, type: 3}
+  heightChannel: 0
+  uvScale: {x: 1, y: 1}
+  algorithm: 1
+  anisotropic: 0
+  applyBilinearSafetyPass: 1
+  candidateBatchSize: 4096
+  outputFolder: Assets/Textures/GeneratedConeMaps
+  outputName: ConeMap
