@@ -12,8 +12,7 @@ Material:
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords: []
-  m_InvalidKeywords:
-  - _USERELAXEDCONE_ON
+  m_InvalidKeywords: []
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
@@ -34,7 +33,7 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _ConeMap:
-        m_Texture: {fileID: 2800000, guid: 99d8d08773d48da428b6e1de258ac39f, type: 2}
+        m_Texture: {fileID: 2800000, guid: bc9e3c11a2542d44b910d32d06365995, type: 2}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _DetailAlbedoMap:
@@ -129,7 +128,7 @@ Material:
     - _SrcBlendAlpha: 1
     - _Surface: 0
     - _UseHistory: 0
-    - _UseRelaxedCone: 1
+    - _UseRelaxedCone: 0
     - _UseTestTexture: 0
     - _WorkflowMode: 1
     - _XRMotionVectorsPass: 1

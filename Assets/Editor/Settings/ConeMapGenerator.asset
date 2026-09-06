@@ -12,13 +12,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 11061299565411e4784dca3fb0468e32, type: 3}
   m_Name: ConeMapGenerator
   m_EditorClassIdentifier: Assembly-CSharp-Editor::ConeStepMapping.EditorTools.ConeMapGenerator
-  heightMap: {fileID: 0}
+  heightMap: {fileID: 2800000, guid: 8800628915b3a9d439e73de4bea255e8, type: 3}
   generatorComputeShader: {fileID: 7200000, guid: db287946e220bf14793c9c1e64c2d5b3, type: 3}
-  heightChannel: 0
+  heightChannel: 3
   uvScale: {x: 1, y: 1}
-  algorithm: 1
-  anisotropic: 0
+  algorithm: 0
+  anisotropic: 1
   applyBilinearSafetyPass: 1
   candidateBatchSize: 4096
-  outputFolder: Assets/Textures/GeneratedConeMaps
+  outputFolder: Assets/Textures/classic/v2/cone/conservative_ani
   outputName: ConeMap
