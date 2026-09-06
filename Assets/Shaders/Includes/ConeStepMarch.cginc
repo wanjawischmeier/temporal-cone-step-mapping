@@ -26,8 +26,11 @@ ConeStepResult MarchConservative(float2 u0, float3 ds, float dominantAxis, float
     int iterations = (int)_MaxIterations;
     int i = 0;
     uint stepCount = 0;
-    float2 historyUV = u0;
-    float historyHeight = SampleHeight(u0, heightMask);
+    ReprojectionSeed bestSeed;
+    bestSeed.uv = u0;
+    bestSeed.height = 0.0;
+    bestSeed.score = 0.0;
+    bestSeed.valid = false;
 
     [loop]
     for (i = 0; i < iterations; i++)
@@ -35,13 +38,7 @@ ConeStepResult MarchConservative(float2 u0, float3 ds, float dominantAxis, float
         stepCount++;
         float2 p = u0 + ds.xy * sc;
         float height = SampleHeight(p, heightMask);
-        // Binary-refinement samples are not cone apices. Only primary cone
-        // steps can seed a cross-apex reprojection shortcut.
-        if (i <= _HistoryStepIndex)
-        {
-            historyUV = p;
-            historyHeight = height;
-        }
+        ConsiderReprojectionSeed(bestSeed, u0, p, height, i);
         error = 1.0 - ds.z * sc - height;
         if (error <= _MinError) break;
 
@@ -55,8 +52,11 @@ ConeStepResult MarchConservative(float2 u0, float3 ds, float dominantAxis, float
     result.wasHit = i < iterations;
     result.penetrated = false;
     result.steps = stepCount;
-    result.historyUV = historyUV;
-    result.historyHeight = historyHeight;
+    // If no candidate earned a positive score, retain the historical behavior:
+    // use this frame's real hit, with validity still controlled by wasHit.
+    result.seedUV = bestSeed.valid ? bestSeed.uv : result.uv;
+    result.seedHeight = bestSeed.valid ? bestSeed.height : SampleHeight(result.uv, heightMask);
+    result.seedValid = bestSeed.valid || result.wasHit;
     return result;
 }
 
@@ -75,8 +75,6 @@ ConeStepResult MarchRelaxed(float2 u0, float3 ds, float dominantAxis, float4 con
     int iterations = (int)_MaxIterations;
     int i = 0;
     uint stepCount = 0;
-    float2 historyUV = u0;
-    float historyHeight = SampleHeight(u0, heightMask);
 
     [loop]
     for (i = 0; i < iterations; i++)
@@ -84,11 +82,6 @@ ConeStepResult MarchRelaxed(float2 u0, float3 ds, float dominantAxis, float4 con
         stepCount++;
         float2 p = u0 + ds.xy * sc;
         float height = SampleHeight(p, heightMask);
-        if (i <= _HistoryStepIndex)
-        {
-            historyUV = p;
-            historyHeight = height;
-        }
         error = 1.0 - ds.z * sc - height;
 
         if (error <= 0.0)
@@ -140,8 +133,11 @@ ConeStepResult MarchRelaxed(float2 u0, float3 ds, float dominantAxis, float4 con
     result.wasHit = penetrated || (i < iterations);
     result.penetrated = penetrated;
     result.steps = stepCount;
-    result.historyUV = historyUV;
-    result.historyHeight = historyHeight;
+    // Relaxed-map cross-apex seeds are intentionally deferred. Keep the old
+    // converged-hit representation; GetStartSc rejects relaxed history anyway.
+    result.seedUV = result.uv;
+    result.seedHeight = SampleHeight(result.uv, heightMask);
+    result.seedValid = result.wasHit;
     return result;
 }
 

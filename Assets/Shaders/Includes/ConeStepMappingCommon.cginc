@@ -42,8 +42,19 @@ struct ConeStepResult
     bool wasHit;
     bool penetrated; // relaxed mode only, diagnostic
     uint steps;
-    float2 historyUV;
-    float historyHeight;
+    float2 seedUV;
+    float seedHeight;
+    bool seedValid;
+};
+
+// Candidate retained while conservative marching. It is deliberately separate
+// from the converged hit: its sole purpose is to seed next frame's shortcut.
+struct ReprojectionSeed
+{
+    float2 uv;
+    float height;
+    float score;
+    bool valid;
 };
 
 // --- Textures & Samplers ---
@@ -73,7 +84,8 @@ CBUFFER_START(UnityPerMaterial)
     float _MaxBinaryIterations;
     float _Relax;
     float _UseRelaxedCone, _UseHistory;
-    int _HistoryStepIndex;
+    float _ReprojectionMarginWeight;
+    float _ReprojectionProgressWeight;
     float _UseTestTexture;
 CBUFFER_END
 
@@ -132,6 +144,35 @@ float SampleConeRatio(float2 uv, float4 coneChannelMask)
 {
     float4 c = SAMPLE_TEXTURE2D_LOD(_ConeMap, sampler_ConeMap, uv, 0);
     return dot(c, coneChannelMask);
+}
+
+// GenerateBatch initializes an anisotropic channel to this value and only
+// lowers it when a limiting texel exists. Such a channel has no useful cone.
+static const float kUnwrittenConeRatio = 1000.0;
+
+void ConsiderReprojectionSeed(inout ReprojectionSeed best, float2 originUV,
+    float2 apexUV, float apexHeight, int iteration)
+{
+    // Select the pyramid face from apex -> current origin. This is different
+    // from the ordinary marching channel, which is selected from ray direction.
+    float2 apexToOrigin = originUV - apexUV;
+    float ratio = SampleConeRatio(apexUV, GetConeChannelMask(apexToOrigin));
+    if (ratio >= kUnwrittenConeRatio)
+        return;
+
+    float dominantDistance = max(abs(apexToOrigin.x), abs(apexToOrigin.y));
+    float margin = max(0.0, 1.0 - (apexHeight + dominantDistance / max(ratio, 1e-6)));
+    float progress = iteration / max(_MaxIterations, 1.0);
+    float score = _ReprojectionMarginWeight * margin + _ReprojectionProgressWeight * progress;
+
+    // A non-positive score means this candidate did not beat the safe fallback.
+    if (score > 0.0 && (!best.valid || score > best.score))
+    {
+        best.uv = apexUV;
+        best.height = apexHeight;
+        best.score = score;
+        best.valid = true;
+    }
 }
 
 #endif // CONE_STEP_MAPPING_COMMON_INCLUDED
