@@ -153,19 +153,24 @@ static const float kUnwrittenConeRatio = 1000.0;
 void ConsiderReprojectionSeed(inout ReprojectionSeed best, float2 originUV,
     float2 apexUV, float apexHeight, int iteration)
 {
-    // Select the pyramid face from apex -> current origin. This is different
-    // from the ordinary marching channel, which is selected from ray direction.
     float2 apexToOrigin = originUV - apexUV;
     float ratio = SampleConeRatio(apexUV, GetConeChannelMask(apexToOrigin));
     if (ratio >= kUnwrittenConeRatio)
         return;
 
     float dominantDistance = max(abs(apexToOrigin.x), abs(apexToOrigin.y));
-    float margin = max(0.0, 1.0 - (apexHeight + dominantDistance / max(ratio, 1e-6)));
+    
+    // Calculate the raw margin without clamping it to 0
+    float margin = 1.0 - (apexHeight + dominantDistance / max(ratio, 1e-6));
+    
+    // HARD REJECT: If the cone ceiling breaches the Z=1.0 plane, it is 
+    // mathematically guaranteed to fail next frame's GetStartSc rejection check.
+    if (margin <= 0.0)
+        return;
+
     float progress = iteration / max(_MaxIterations, 1.0);
     float score = _ReprojectionMarginWeight * margin + _ReprojectionProgressWeight * progress;
 
-    // A non-positive score means this candidate did not beat the safe fallback.
     if (score > 0.0 && (!best.valid || score > best.score))
     {
         best.uv = apexUV;

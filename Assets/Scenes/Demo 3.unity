@@ -138,11 +138,11 @@ MonoBehaviour:
   marginWeightMax: 1
   progressWeightMin: 0
   progressWeightMax: 1
-  gridResolution: 20
+  gridResolution: 10
   warmupFrames: 100
-  samplesPerCell: 3
+  samplesPerCell: 10
   sampleDelayFrames: 1
-  outputFileName: cone_step_sweep_r20_1.csv
+  outputFileName: cone_step_sweep_r10_1.csv
   startOnPlay: 1
   logProgressToConsole: 1
 --- !u!1 &1244520494
