@@ -15,6 +15,13 @@ public sealed class ConeStepCountDebugDisplay : MonoBehaviour
     [SerializeField] RawImage heatmapImage;
     [SerializeField] Material heatmapMaterial;
     [SerializeField, Min(1)] float heatmapMaximum = 64;
+    [SerializeField] bool smoothHeatmap = false;
+    [SerializeField, Range(1, 240)] int smoothFrameCount = 30;
+
+    RenderTexture m_AccumTextureA;
+    RenderTexture m_AccumTextureB;
+    bool m_AccumIsAActive = true; // true => A currently holds the latest accumulated value
+    const int AccumulatePassIndex = 1; // "Accumulate" pass in the heatmap shader
 
     Camera m_Camera;
     GraphicsBuffer m_TotalSteps;
@@ -48,6 +55,32 @@ public sealed class ConeStepCountDebugDisplay : MonoBehaviour
             Destroy(m_RuntimeHeatmapMaterial);
         m_RuntimeHeatmapMaterial = null;
         m_ReadbackPending = false;
+        ReleaseAccumTextures();
+    }
+
+    void ReleaseAccumTextures()
+    {
+        if (m_AccumTextureA != null) { m_AccumTextureA.Release(); DestroyImmediate(m_AccumTextureA); m_AccumTextureA = null; }
+        if (m_AccumTextureB != null) { m_AccumTextureB.Release(); DestroyImmediate(m_AccumTextureB); m_AccumTextureB = null; }
+    }
+
+    void EnsureAccumTextures(int width, int height)
+    {
+        if (m_AccumTextureA != null && m_AccumTextureA.width == width && m_AccumTextureA.height == height)
+            return;
+
+        ReleaseAccumTextures();
+        var desc = new RenderTextureDescriptor(width, height, RenderTextureFormat.ARGBHalf, 0)
+        {
+            enableRandomWrite = false,
+            msaaSamples = 1,
+            sRGB = false
+        };
+        m_AccumTextureA = new RenderTexture(desc) { name = "ConeStepAccumA", hideFlags = HideFlags.HideAndDontSave };
+        m_AccumTextureA.Create();
+        m_AccumTextureB = new RenderTexture(desc) { name = "ConeStepAccumB", hideFlags = HideFlags.HideAndDontSave };
+        m_AccumTextureB.Create();
+        m_AccumIsAActive = true; // both start black; smoothing ramps up over ~smoothFrameCount frames
     }
 
     void OnEndCameraRendering(ScriptableRenderContext context, Camera camera)
@@ -61,8 +94,32 @@ public sealed class ConeStepCountDebugDisplay : MonoBehaviour
 
         if (m_RuntimeHeatmapMaterial != null)
         {
-            m_RuntimeHeatmapMaterial.SetTexture("_StepCountTexture", stepTexture);
             m_RuntimeHeatmapMaterial.SetFloat("_MaxSteps", heatmapMaximum);
+            m_RuntimeHeatmapMaterial.SetTexture("_StepCountTexture", stepTexture);
+
+            if (smoothHeatmap)
+            {
+                EnsureAccumTextures(stepTexture.width, stepTexture.height);
+
+                RenderTexture source = m_AccumIsAActive ? m_AccumTextureA : m_AccumTextureB;
+                RenderTexture dest = m_AccumIsAActive ? m_AccumTextureB : m_AccumTextureA;
+
+                m_RuntimeHeatmapMaterial.SetTexture("_PrevAccum", source);
+                m_RuntimeHeatmapMaterial.SetFloat("_AccumAlpha", 1f / smoothFrameCount);
+                m_RuntimeHeatmapMaterial.SetFloat("_MaxSteps", heatmapMaximum); // now also consumed by the Accumulate pass
+                Graphics.Blit(stepTexture, dest, m_RuntimeHeatmapMaterial, AccumulatePassIndex);
+                Graphics.Blit(stepTexture, dest, m_RuntimeHeatmapMaterial, AccumulatePassIndex);
+                m_AccumIsAActive = !m_AccumIsAActive;
+
+                m_RuntimeHeatmapMaterial.SetTexture("_SmoothedStepCountTexture", dest);
+                m_RuntimeHeatmapMaterial.SetFloat("_UseSmoothing", 1f);
+            }
+            else
+            {
+                m_RuntimeHeatmapMaterial.SetFloat("_UseSmoothing", 0f);
+                m_RuntimeHeatmapMaterial.SetFloat("_AccumAlpha", 1f);
+            }
+
             heatmapImage.texture = stepTexture;
         }
 
