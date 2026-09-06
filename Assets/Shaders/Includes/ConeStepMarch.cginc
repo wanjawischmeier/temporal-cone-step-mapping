@@ -26,6 +26,8 @@ ConeStepResult MarchConservative(float2 u0, float3 ds, float dominantAxis, float
     int iterations = (int)_MaxIterations;
     int i = 0;
     uint stepCount = 0;
+    float2 historyUV = u0;
+    float historyHeight = SampleHeight(u0, heightMask);
 
     [loop]
     for (i = 0; i < iterations; i++)
@@ -33,6 +35,13 @@ ConeStepResult MarchConservative(float2 u0, float3 ds, float dominantAxis, float
         stepCount++;
         float2 p = u0 + ds.xy * sc;
         float height = SampleHeight(p, heightMask);
+        // Binary-refinement samples are not cone apices. Only primary cone
+        // steps can seed a cross-apex reprojection shortcut.
+        if (i <= _HistoryStepIndex)
+        {
+            historyUV = p;
+            historyHeight = height;
+        }
         error = 1.0 - ds.z * sc - height;
         if (error <= _MinError) break;
 
@@ -46,6 +55,8 @@ ConeStepResult MarchConservative(float2 u0, float3 ds, float dominantAxis, float
     result.wasHit = i < iterations;
     result.penetrated = false;
     result.steps = stepCount;
+    result.historyUV = historyUV;
+    result.historyHeight = historyHeight;
     return result;
 }
 
@@ -64,6 +75,8 @@ ConeStepResult MarchRelaxed(float2 u0, float3 ds, float dominantAxis, float4 con
     int iterations = (int)_MaxIterations;
     int i = 0;
     uint stepCount = 0;
+    float2 historyUV = u0;
+    float historyHeight = SampleHeight(u0, heightMask);
 
     [loop]
     for (i = 0; i < iterations; i++)
@@ -71,6 +84,11 @@ ConeStepResult MarchRelaxed(float2 u0, float3 ds, float dominantAxis, float4 con
         stepCount++;
         float2 p = u0 + ds.xy * sc;
         float height = SampleHeight(p, heightMask);
+        if (i <= _HistoryStepIndex)
+        {
+            historyUV = p;
+            historyHeight = height;
+        }
         error = 1.0 - ds.z * sc - height;
 
         if (error <= 0.0)
@@ -122,6 +140,8 @@ ConeStepResult MarchRelaxed(float2 u0, float3 ds, float dominantAxis, float4 con
     result.wasHit = penetrated || (i < iterations);
     result.penetrated = penetrated;
     result.steps = stepCount;
+    result.historyUV = historyUV;
+    result.historyHeight = historyHeight;
     return result;
 }
 

@@ -34,6 +34,7 @@ Shader "Custom/ConeStepMapping"
         [Toggle] _UseRelaxedCone("Use Relaxed Cone Map", Float) = 0
 
         [Toggle] _UseHistory("Use History (reprojection hook, off by default)", Float) = 0
+        _HistoryStepIndex("History Apex Step Index", Int) = 0
         [Toggle] _UseTestTexture("Use Test Texture", Float) = 0
     }
 
@@ -128,8 +129,9 @@ Shader "Custom/ConeStepMapping"
                 output.stepCount = result.steps;
 
                 // Write our current state to MRT1 for the next frame.
-                // R, G = current UV, B = last error, A = valid pixel flag.
-                output.color1 = float4(result.uv, result.error, result.wasHit ? 1.0 : 0.0);
+                // R, G = selected historical cone apex UV, B = its height,
+                // A = valid pixel flag.
+                output.color1 = float4(result.historyUV, result.historyHeight, result.wasHit ? 1.0 : 0.0);
                 output.depth = result.t > 0.999 ? 0 : result.t;
 
                 bool outOfBounds = result.uv.x < 0.0 || result.uv.x > 1.0 ||
@@ -158,7 +160,7 @@ Shader "Custom/ConeStepMapping"
                 output.depth = hitHCS.z / hitHCS.w;
 
                 // Output MRTs
-                output.color1 = float4(result.uv, result.error, 1.0);
+                output.color1 = float4(result.historyUV, result.historyHeight, 1.0);
                 half4 color = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, result.uv) * _BaseColor;
                 output.color0 = color;
 

@@ -42,6 +42,8 @@ struct ConeStepResult
     bool wasHit;
     bool penetrated; // relaxed mode only, diagnostic
     uint steps;
+    float2 historyUV;
+    float historyHeight;
 };
 
 // --- Textures & Samplers ---
@@ -70,7 +72,9 @@ CBUFFER_START(UnityPerMaterial)
     float _MaxIterations;
     float _MaxBinaryIterations;
     float _Relax;
-    float _UseRelaxedCone, _UseHistory, _UseTestTexture;
+    float _UseRelaxedCone, _UseHistory;
+    int _HistoryStepIndex;
+    float _UseTestTexture;
 CBUFFER_END
 
 // Declared outside the per-material CBUFFER to stay SRP-batcher compatible,
