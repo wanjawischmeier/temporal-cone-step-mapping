@@ -18,19 +18,32 @@ float NextConeStep(float sc, float remaining, float coneRatio, float3 ds, float 
 // The conservative map guarantees the cone never touches the surface except
 // at its own apex, so a plain step-and-converge loop can never overshoot
 // through the surface.
-ConeStepResult MarchConservative(float2 u0, float3 ds, float dominantAxis, float4 coneChannelMask, float4 heightMask, float startSc, float minStep)
+ConeStepResult MarchConservative(
+    float2 u0, float3 ds, float dominantAxis, float4 coneChannelMask,
+    float4 heightMask, float startSc, float minStep,
+    float4 historyData, bool isHistoryValid)
 {
     ConeStepResult result;
     float sc = startSc;
     float error = 1.0;
-    int iterations = (int)_MaxIterations;
+    int iterations = (int) _MaxIterations;
     int i = 0;
     uint stepCount = 0;
+
     ReprojectionSeed bestSeed;
     bestSeed.uv = u0;
     bestSeed.height = 0.0;
     bestSeed.score = 0.0;
     bestSeed.valid = false;
+
+    // PRE-LOAD: Evaluate previous frame's seed before starting the loop.
+    // If the loop skips over this seed's region, bestSeed will still hold it.
+    if (isHistoryValid)
+    {
+        float2 prevApexUV = historyData.xy;
+        float prevApexHeight = SampleHeight(prevApexUV, heightMask);
+        ConsiderReprojectionSeed(bestSeed, u0, prevApexUV, prevApexHeight, 0);
+    }
 
     [loop]
     for (i = 0; i < iterations; i++)
@@ -40,7 +53,8 @@ ConeStepResult MarchConservative(float2 u0, float3 ds, float dominantAxis, float
         float height = SampleHeight(p, heightMask);
         ConsiderReprojectionSeed(bestSeed, u0, p, height, i);
         error = 1.0 - ds.z * sc - height;
-        if (error <= _MinError) break;
+        if (error <= _MinError)
+            break;
 
         float coneRatio = SampleConeRatio(p, coneChannelMask);
         sc = NextConeStep(sc, error, coneRatio, ds, dominantAxis, _Relax, minStep);

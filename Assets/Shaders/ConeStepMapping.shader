@@ -117,6 +117,12 @@ Shader "Custom/ConeStepMapping"
 
                 float startSc = GetStartSc(historyData, prevScreenUV, IN.uv, ds, heightMask);
 
+                // Duplicate the validity check from GetStartSc so we can pass it to the loop
+                bool isHistoryValid = _UseHistory > 0.5 && _UseRelaxedCone <= 0.5 &&
+                                      prevScreenUV.x >= 0.0 && prevScreenUV.x <= 1.0 &&
+                                      prevScreenUV.y >= 0.0 && prevScreenUV.y <= 1.0 &&
+                                      historyData.w > 0.5;
+
                 ConeStepResult result;
                 if (_UseRelaxedCone > 0.5)
                 {
@@ -124,7 +130,7 @@ Shader "Custom/ConeStepMapping"
                 }
                 else
                 {
-                    result = MarchConservative(IN.uv, ds, dominantAxis, coneChannelMask, heightMask, startSc, minStep);
+                    result = MarchConservative(IN.uv, ds, dominantAxis, coneChannelMask, heightMask, startSc, minStep, historyData, isHistoryValid);
                 }
 
                 output.stepCount = result.steps;

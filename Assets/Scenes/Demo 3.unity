@@ -134,15 +134,15 @@ MonoBehaviour:
   reductionShader: {fileID: 7200000, guid: a1b2c3d4e5f6478899aabbccddeeff01, type: 3}
   targetMaterial: {fileID: 2100000, guid: 3fdef35811bd71841a4cc97d4698e456, type: 2}
   targetCamera: {fileID: 4666819047957649521}
-  marginWeightMin: 0
-  marginWeightMax: 1
+  marginWeightMin: 8
+  marginWeightMax: 18
   progressWeightMin: 0
-  progressWeightMax: 1
+  progressWeightMax: 6
   gridResolution: 10
   warmupFrames: 100
   samplesPerCell: 10
   sampleDelayFrames: 1
-  outputFileName: cone_step_sweep_r10_1.csv
+  outputFileName: cone_step_sweep_r10_3.csv
   startOnPlay: 1
   logProgressToConsole: 1
 --- !u!1 &1244520494
