@@ -50,6 +50,7 @@ Shader "Custom/ConeStepMapping"
             Blend SrcAlpha OneMinusSrcAlpha, One OneMinusSrcAlpha
             // Integer targets cannot blend. Target 2 is only attached by the
             // renderer feature's step-count debug toggle.
+            Blend 1 Off
             Blend 2 Off
 
             HLSLPROGRAM

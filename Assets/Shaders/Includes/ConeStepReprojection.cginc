@@ -45,6 +45,9 @@ bool TryIntersectConeFace(float2 apexUV, float apexHeight, float2 rayUV, float3 
     bool xFace = face < 2;
     float sign = (face == 0 || face == 2) ? 1.0 : -1.0;
     float signedDelta0 = sign * (xFace ? delta0.x : delta0.y);
+    if (signedDelta0 < 0.0)
+        return false;
+    
     float signedRayDelta = sign * (xFace ? ds.x : ds.y);
     float ratio = SampleConeRatio(apexUV, ConeFaceMask(face));
 
