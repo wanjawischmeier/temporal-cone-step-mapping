@@ -114,30 +114,40 @@ ConeStepResult MarchRelaxed(float2 u0, float3 ds, float dominantAxis, float4 con
     if (penetrated)
     {
         float lo = scPrev, hi = sc;
-        float hiErr = error;
-        int binaryIterations = (int)_MaxBinaryIterations;
+        float loErr = errorPrev, hiErr = error;
+        int binaryIterations = (int) _MaxBinaryIterations;
 
         [loop]
         for (int j = 0; j < binaryIterations; j++)
         {
             stepCount++;
-            float mid = 0.5 * (lo + hi);
+            // False position: interpolate the zero-crossing instead of bisecting blindly.
+            float t = loErr / max(loErr - hiErr, 1e-6);
+            float mid = lerp(lo, hi, saturate(t));
             float2 pm = u0 + ds.xy * mid;
             float hMid = SampleHeight(pm, heightMask);
             float errMid = 1.0 - ds.z * mid - hMid;
 
-            if (abs(errMid) <= _MinError)
+            if (abs(errMid) <= _MinError || (hi - lo) < minStep)
             {
                 lo = hi = mid;
                 hiErr = errMid;
                 break;
             }
 
-            if (errMid > 0.0) { lo = mid; }
-            else { hi = mid; hiErr = errMid; }
+            if (errMid > 0.0)
+            {
+                lo = mid;
+                loErr = errMid;
+            }
+            else
+            {
+                hi = mid;
+                hiErr = errMid;
+            }
         }
 
-        sc = hi;   // land on/just past the surface rather than back above it
+        sc = hi;
         error = hiErr;
     }
 
