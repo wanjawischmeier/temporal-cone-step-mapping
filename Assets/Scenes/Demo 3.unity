@@ -136,14 +136,14 @@ MonoBehaviour:
   targetCamera: {fileID: 4666819047957649521}
   marginWeightMin: 0
   marginWeightMax: 0.1
-  progressWeightMin: 0.1
-  progressWeightMax: 10
-  gridResolution: 10
+  progressWeightMin: 0
+  progressWeightMax: 1
+  gridResolution: 4
   warmupFrames: 100
   samplesPerCell: 40
   sampleDelayFrames: 2
   historyResetFrames: 2
-  outputFileName: cone_step_sweep_moving_r10_5.csv
+  outputFileName: cone_step_sweep_moving_r4_11.csv
   startOnPlay: 1
   logProgressToConsole: 1
 --- !u!1 &1244520494
@@ -348,6 +348,8 @@ GameObject:
   m_Component:
   - component: {fileID: 1845974204}
   - component: {fileID: 1845974203}
+  - component: {fileID: 1845974205}
+  - component: {fileID: 1845974206}
   m_Layer: 0
   m_Name: Camera Orbit
   m_TagString: Untagged
@@ -363,7 +365,7 @@ Animator:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1845974202}
-  m_Enabled: 1
+  m_Enabled: 0
   m_Avatar: {fileID: 0}
   m_Controller: {fileID: 9100000, guid: 0be077b5b6111a647b9190ea2006750b, type: 2}
   m_CullingMode: 0
@@ -393,6 +395,35 @@ Transform:
   - {fileID: 4123537818979177001}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1845974205
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1845974202}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0a29348626e159942bcd2a43b9f98719, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FramePerfectAnimatorDriver
+  capFrameRate: 0
+  targetFrameRate: 60
+--- !u!114 &1845974206
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1845974202}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: afd206fd175df994bba254e1e416e9e6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SimpleRotationLoop
+  startRotation: {x: 0, y: 0, z: 0}
+  endRotation: {x: 0, y: 10, z: 0}
+  totalFrames: 2
 --- !u!81 &1861851436086300128
 AudioListener:
   m_ObjectHideFlags: 0
