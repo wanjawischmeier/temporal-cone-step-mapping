@@ -36,6 +36,7 @@ public class ConeStepMrtPass : ScriptableRenderPass
 
     LayerMask m_LayerMask;
     static readonly Dictionary<Camera, CameraHistory> s_Histories = new Dictionary<Camera, CameraHistory>();
+    static readonly HashSet<Camera> s_HistoryResetRequests = new HashSet<Camera>();
     FilterMode m_FilterMode;
     GraphicsFormat m_MrtGraphicsFormat;
     bool m_ShowDebug;
@@ -57,6 +58,17 @@ public class ConeStepMrtPass : ScriptableRenderPass
             ? history.stepCount.rt : null;
     }
 
+    /// <summary>
+    /// Invalidates both ping-pong history targets before this camera's next cone
+    /// pass. The request is executed inside the render graph, so it remains
+    /// correctly ordered with the pass that subsequently reads the history.
+    /// </summary>
+    public static void RequestHistoryReset(Camera camera)
+    {
+        if (camera != null)
+            s_HistoryResetRequests.Add(camera);
+    }
+
     public override void RecordRenderGraph(RenderGraph renderGraph, ContextContainer frameData)
     {
         var resourceData = frameData.Get<UniversalResourceData>();
@@ -71,6 +83,11 @@ public class ConeStepMrtPass : ScriptableRenderPass
             s_Histories[camera] = history;
         }
 
+        // A reset must also reset the reprojection matrix baseline. Otherwise a
+        // newly invalidated history texture could later be paired with a matrix
+        // that predates the reset.
+        bool resetHistory = s_HistoryResetRequests.Remove(camera);
+
         var colorDesc = cameraData.cameraTargetDescriptor;
         colorDesc.depthBufferBits = 0;
         colorDesc.graphicsFormat = GraphicsFormat.R8G8B8A8_UNorm;
@@ -80,7 +97,7 @@ public class ConeStepMrtPass : ScriptableRenderPass
         Matrix4x4 projMatrix = GL.GetGPUProjectionMatrix(camera.projectionMatrix, isRenderToTexture);
         Matrix4x4 currentViewProj = projMatrix * viewMatrix;
 
-        if (history.isFirstFrame)
+        if (history.isFirstFrame || resetHistory)
         {
             history.prevViewProjMatrix = currentViewProj;
             history.isFirstFrame = false;
@@ -130,21 +147,37 @@ public class ConeStepMrtPass : ScriptableRenderPass
         var readTexture = useTextureA ? history.RT_A : history.RT_B;
         var writeTexture = useTextureA ? history.RT_B : history.RT_A;
 
-        var previousFrame = renderGraph.ImportTexture(readTexture);
-        var mrt1 = renderGraph.ImportTexture(writeTexture);
+        // Instead of separate raster passes that bind these textures as attachments
+        // (which the render-graph compiler then merges with the main MRT pass, causing
+        // the same RTHandle to be bound at two different attachment indices at once),
+        // clear them via the import's load action. No extra attachment binding = no
+        // merge conflict.
+        var readImportParams = new ImportResourceParams
+        {
+            clearOnFirstUse = resetHistory,
+            clearColor = Color.clear,
+            discardOnLastUse = false
+        };
+        var writeImportParams = new ImportResourceParams
+        {
+            clearOnFirstUse = resetHistory,
+            clearColor = Color.clear,
+            discardOnLastUse = false
+        };
+
+        var previousFrame = renderGraph.ImportTexture(readTexture, readImportParams);
+        var mrt1 = renderGraph.ImportTexture(writeTexture, writeImportParams);
+
         TextureHandle stepCountTexture = default;
         if (m_DebugStepCount)
         {
-            stepCountTexture = renderGraph.ImportTexture(history.stepCount);
-            using (var clearBuilder = renderGraph.AddRasterRenderPass<DebugClearPassData>("Clear Cone Step Count", out var clearData))
+            var stepCountImportParams = new ImportResourceParams
             {
-                clearBuilder.AllowPassCulling(false);
-                clearBuilder.SetRenderAttachment(stepCountTexture, 0, AccessFlags.Write);
-                clearBuilder.SetRenderFunc(static (DebugClearPassData data, RasterGraphContext rgContext) =>
-                {
-                    rgContext.cmd.ClearRenderTarget(false, true, Color.clear);
-                });
-            }
+                clearOnFirstUse = true, // always clear per frame, debug-only cost
+                clearColor = Color.clear,
+                discardOnLastUse = false
+            };
+            stepCountTexture = renderGraph.ImportTexture(history.stepCount, stepCountImportParams);
         }
 
         using (var builder = renderGraph.AddRasterRenderPass<MrtPassData>("Cone Step MRT Pass", out var passData))
@@ -194,7 +227,9 @@ public class ConeStepMrtPass : ScriptableRenderPass
             history.stepCount?.Release();
         }
         s_Histories.Clear();
+        s_HistoryResetRequests.Clear();
     }
 
     class DebugClearPassData { }
+    class HistoryClearPassData { }
 }

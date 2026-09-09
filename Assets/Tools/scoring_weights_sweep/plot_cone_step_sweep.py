@@ -65,33 +65,47 @@ def to_grid(margins, progresses, steps):
     return margin_axis, progress_axis, grid
 
 
-def normalize(grid):
-    lo, hi = grid.min(), grid.max()
+def normalize(grid, lo=None, hi=None):
+    if lo is None:
+        lo = grid.min()
+    if hi is None:
+        hi = grid.max()
     if hi - lo < 1e-12:
         return np.zeros_like(grid)
-    return (grid - lo) / (hi - lo)
+    return np.clip((grid - lo) / (hi - lo), 0, 1)
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("csv_path", help="Path to the sweep CSV file")
     parser.add_argument("--raw", action="store_true",
-                         help="Color/height by raw step count instead of normalized [0,1]")
+        help="Color/height by raw step count instead of normalized [0,1]")
+    parser.add_argument("--percentile-clip", type=float, default=None, metavar="P",
+        help="Clip color scale to [P, 100-P] percentiles to reduce outlier skew, e.g. --percentile-clip 2")
     args = parser.parse_args()
 
     margins, progresses, steps, best_line = load_sweep(args.csv_path)
     margin_axis, progress_axis, grid = to_grid(margins, progresses, steps)
 
-    display_grid = grid if args.raw else normalize(grid)
-    z_label = "step count" if args.raw else "step count (normalized 0-1)"
+    if args.raw:
+        display_grid = grid
+        z_label = "step count"
+    elif args.percentile_clip is not None:
+        lo = np.percentile(grid, args.percentile_clip)
+        hi = np.percentile(grid, 100 - args.percentile_clip)
+        display_grid = normalize(grid, lo, hi)
+        z_label = f"step count (clipped {args.percentile_clip:.0f}-{100-args.percentile_clip:.0f}%ile)"
+    else:
+        display_grid = normalize(grid)
+        z_label = "step count (normalized 0-1)"
 
     if best_line:
         print(best_line.lstrip("# ").strip())
     else:
         flat_min_idx = np.unravel_index(np.argmin(grid), grid.shape)
         print(f"best (computed): margin_weight={margin_axis[flat_min_idx[1]]:.4f}, "
-              f"progress_weight={progress_axis[flat_min_idx[0]]:.4f}, "
-              f"step_count={grid[flat_min_idx]:.0f}")
+            f"progress_weight={progress_axis[flat_min_idx[0]]:.4f}, "
+            f"step_count={grid[flat_min_idx]:.0f}")
 
     fig = plt.figure(figsize=(13, 5.5))
 
@@ -113,7 +127,7 @@ def main():
     ax1 = fig.add_subplot(1, 2, 2, projection="3d")
     mesh_margin, mesh_progress = np.meshgrid(margin_axis, progress_axis)
     surf = ax1.plot_surface(mesh_margin, mesh_progress, display_grid, cmap="viridis",
-                             linewidth=0, antialiased=True)
+        linewidth=0, antialiased=True)
     ax1.set_xlabel("margin weight")
     ax1.set_ylabel("progress weight")
     ax1.set_zlabel(z_label)

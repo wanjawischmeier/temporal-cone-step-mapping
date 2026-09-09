@@ -44,9 +44,8 @@ public sealed class ConeStepWeightSweep : MonoBehaviour
     [SerializeField, Min(1)] int samplesPerCell = 1;
     [Tooltip("Frames to wait between consecutive samples within the same cell to avoid sampling correlated frames.")]
     [SerializeField, Min(0)] int sampleDelayFrames = 1;
-    [Tooltip("Frames to hold _UseHistory off between cells, to flush stale reprojection state from " +
-         "the previous cell's weights before sampling this one. Does NOT run between samples " +
-         "within the same cell - the running history across those is the point.")]
+    [Tooltip("Frames to wait after the render feature has cleared both history buffers for a cell. " +
+         "The cell's own weights are already active during these frames.")]
     [SerializeField, Min(1)] int historyResetFrames = 1;
 
     [Header("Output")]
@@ -121,18 +120,18 @@ public sealed class ConeStepWeightSweep : MonoBehaviour
                 {
                     float progress = Mathf.Lerp(progressWeightMin, progressWeightMax, gridResolution == 1 ? 0f : pi / (float)(gridResolution - 1));
 
-                    // Flush the previous cell's accumulated reprojection state before sampling this one,
-                    // so every cell starts from the same clean baseline rather than inheriting whatever
-                    // history built up under the last cell's weights.
-                    targetMaterial.SetFloat(UseHistoryProperty, 0f);
-                    for (int r = 0; r < historyResetFrames; r++)
-                        yield return new WaitForEndOfFrame();
-                    targetMaterial.SetFloat(UseHistoryProperty, 1f);
-
+                    // Set this cell's configuration before resetting. The reset is performed by
+                    // the render feature itself, clearing both ping-pong textures, rather than
+                    // merely disabling their use while still writing new (old-weight) seeds.
                     targetMaterial.SetFloat(MarginWeightProperty, margin);
                     targetMaterial.SetFloat(ProgressWeightProperty, progress);
+                    targetMaterial.SetFloat(UseHistoryProperty, 1f);
+                    ConeStepMrtPass.RequestHistoryReset(targetCamera);
+                    for (int r = 0; r < historyResetFrames; r++)
+                        yield return new WaitForEndOfFrame();
 
-                    // Let the new weights actually reach a rendered frame before we sample.
+                    // The history is now known clean and contains only seeds generated
+                    // under this cell's weights. Let that state warm up before sampling.
                     for (int w = 0; w < warmupFrames; w++)
                         yield return new WaitForEndOfFrame();
 
