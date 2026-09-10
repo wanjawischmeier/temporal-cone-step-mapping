@@ -115,14 +115,18 @@ Shader "Custom/ConeStepMapping"
                     output.depth = 0;
                     return output;
                 }
-
-                float startSc = GetStartSc(historyData, prevScreenUV, IN.uv, ds, heightMask);
-
-                // Duplicate the validity check from GetStartSc so we can pass it to the loop
+                
                 bool isHistoryValid = _UseHistory > 0.5 && _UseRelaxedCone <= 0.5 &&
                                       prevScreenUV.x >= 0.0 && prevScreenUV.x <= 1.0 &&
                                       prevScreenUV.y >= 0.0 && prevScreenUV.y <= 1.0 &&
-                                      historyData.w > 0.5;
+                                      historyData.x >= 0.0 && historyData.x <= 1.0 &&
+                                      historyData.y >= 0.0 && historyData.y <= 1.0;
+
+                bool didCameraMove = length(IN.screenPos - IN.prevScreenPos) > 1e-5;
+
+                float startSc = GetStartSc(historyData, prevScreenUV, IN.uv, ds, heightMask, isHistoryValid, didCameraMove);
+
+                // Duplicate the validity check from GetStartSc so we can pass it to the loop
 
                 ConeStepResult result;
                 if (_UseRelaxedCone > 0.5)
@@ -134,13 +138,19 @@ Shader "Custom/ConeStepMapping"
                     result = MarchConservative(IN.uv, ds, dominantAxis, coneChannelMask, heightMask, startSc, minStep, historyData, isHistoryValid);
                 }
 
+                if (!result.seedValid)
+                {
+                    result.uv = float2(-1, -1);
+                    result.seedUV = float2(-1, -1);
+                }
+
                 output.stepCount = result.steps;
 
                 // Write our current state to MRT1 for the next frame.
                 // R, G = best reprojection apex UV, B = its height, A = valid.
                 // This is intentionally independent of result.uv, which remains
                 // the actual converged surface hit used for shading and depth.
-                output.color1 = float4(result.seedUV, result.seedHeight, result.seedValid ? 1.0 : 0.0);
+                output.color1 = float4(result.seedUV, result.uv);
                 output.depth = result.t > 0.999 ? 0 : result.t;
 
                 bool outOfBounds = result.uv.x < 0.0 || result.uv.x > 1.0 ||
@@ -169,7 +179,6 @@ Shader "Custom/ConeStepMapping"
                 output.depth = hitHCS.z / hitHCS.w;
 
                 // Output MRTs
-                output.color1 = float4(result.seedUV, result.seedHeight, result.seedValid ? 1.0 : 0.0);
                 half4 color = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, result.uv) * _BaseColor;
                 output.color0 = color;
 

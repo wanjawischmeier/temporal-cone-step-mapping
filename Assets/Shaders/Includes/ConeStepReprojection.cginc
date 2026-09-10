@@ -65,12 +65,23 @@ bool TryIntersectConeFace(float2 apexUV, float apexHeight, float2 rayUV, float3 
     return IsInsideConeFace(delta0 + ds.xy * intersectionSc, face);
 }
 
-float GetStartSc(float4 historyData, float2 prevScreenUV, float2 rayUV, float3 ds, float4 heightMask)
+float TryIntersectCone(float2 apexUV, float apexHeight, float2 rayUV, float3 ds)
 {
-    bool isHistoryValid = _UseHistory > 0.5 && _UseRelaxedCone <= 0.5 &&
-                          prevScreenUV.x >= 0.0 && prevScreenUV.x <= 1.0 &&
-                          prevScreenUV.y >= 0.0 && prevScreenUV.y <= 1.0 &&
-                          historyData.w > 0.5;
+    float startSc = 1e20;
+    
+    [unroll]
+    for (int face = 0; face < 4; ++face)
+    {
+        float candidateSc;
+        if (TryIntersectConeFace(apexUV, apexHeight, rayUV, ds, face, candidateSc))
+            startSc = min(startSc, candidateSc);
+    }
+    
+    return startSc >= 1e19 ? 0.0 : startSc;
+}
+
+float GetStartSc(float4 historyData, float2 prevScreenUV, float2 rayUV, float3 ds, float4 heightMask, bool isHistoryValid, bool didCameraMove)
+{
     if (!isHistoryValid)
         return 0.0;
 
@@ -85,16 +96,7 @@ float GetStartSc(float4 historyData, float2 prevScreenUV, float2 rayUV, float3 d
     if (1.0 <= ConeCeiling(apexUV, apexHeight, rayUV))
         return 0.0;
 
-    float startSc = 1e20;
-    [unroll]
-    for (int face = 0; face < 4; ++face)
-    {
-        float candidateSc;
-        if (TryIntersectConeFace(apexUV, apexHeight, rayUV, ds, face, candidateSc))
-            startSc = min(startSc, candidateSc);
-    }
-
-    return startSc >= 1e19 ? 0.0 : startSc;
+    return TryIntersectCone(apexUV, apexHeight, rayUV, ds);
 }
 
 #endif // CONE_STEP_REPROJECTION_INCLUDED
