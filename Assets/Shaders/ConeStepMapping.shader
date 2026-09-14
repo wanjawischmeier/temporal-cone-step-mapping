@@ -122,7 +122,7 @@ Shader "Custom/ConeStepMapping"
                                       historyData.x >= 0.0 && historyData.x <= 1.0 &&
                                       historyData.y >= 0.0 && historyData.y <= 1.0;
 
-                bool didCameraMove = length(IN.screenPos - IN.prevScreenPos) > 1e-5;
+                bool didCameraMove = length(IN.screenPos - IN.prevScreenPos) > 1e-5 || true;
 
                 float startSc = GetStartSc(historyData, prevScreenUV, IN.uv, ds, heightMask, isHistoryValid, didCameraMove);
 

@@ -65,19 +65,23 @@ bool TryIntersectConeFace(float2 apexUV, float apexHeight, float2 rayUV, float3 
     return IsInsideConeFace(delta0 + ds.xy * intersectionSc, face);
 }
 
-float TryIntersectCone(float2 apexUV, float apexHeight, float2 rayUV, float3 ds)
+float TryIntersectCone(float2 apexUV, float apexHeight, float2 rayUV, float3 ds, bool takeFurthest)
 {
-    float startSc = 1e20;
-    
+    float bestSc = takeFurthest ? -1.0 : 1e20;
+    bool found = false;
+
     [unroll]
     for (int face = 0; face < 4; ++face)
     {
         float candidateSc;
         if (TryIntersectConeFace(apexUV, apexHeight, rayUV, ds, face, candidateSc))
-            startSc = min(startSc, candidateSc);
+        {
+            found = true;
+            bestSc = takeFurthest ? max(bestSc, candidateSc) : min(bestSc, candidateSc);
+        }
     }
-    
-    return startSc >= 1e19 ? 0.0 : startSc;
+
+    return found ? bestSc : 0.0;
 }
 
 float GetStartSc(float4 historyData, float2 prevScreenUV, float2 rayUV, float3 ds, float4 heightMask, bool isHistoryValid, bool didCameraMove)
@@ -85,18 +89,38 @@ float GetStartSc(float4 historyData, float2 prevScreenUV, float2 rayUV, float3 d
     if (!isHistoryValid)
         return 0.0;
 
+    if (!didCameraMove)
+    {
+        // historyData.zw = previous frame's exact converged hit UV. It sits on
+        // the true surface, essentially tangent to this frame's ray (assuming
+        // truly static camera), not chosen for margin like the mode-1 seed.
+        // The generic ConeCeiling(rayUV) pre-check is unreliable this far from
+        // the apex, so we skip it and instead take the FURTHEST of the (up to)
+        // two valid face crossings, which bracket the near-tangent touch point.
+        float2 apexUV = historyData.zw;
+        float apexHeight = SampleHeight(apexUV, heightMask);
+        float startSc = TryIntersectCone(apexUV, apexHeight, rayUV, ds, true);
+
+        // Defensive: unlike mode 1, we didn't prove ray origin starts above
+        // this apex's bound, so verify we haven't jumped past the real
+        // surface before trusting startSc.
+        if (startSc > 0.0)
+        {
+            float2 p = rayUV + ds.xy * startSc;
+            float h = SampleHeight(p, heightMask);
+            if (1.0 - ds.z * startSc - h < 0.0)
+                startSc = 0.0;
+        }
+        return startSc;
+    }
+
     float2 apexUV = historyData.xy;
-    // The history target may be bilinearly filtered. Its interpolated B value
-    // is useful to inspect, but does not necessarily belong to its interpolated
-    // UV. Resampling makes the apex height and cone sample an exact pair.
     float apexHeight = SampleHeight(apexUV, heightMask);
 
-    // If the ray origin is not above this globally conservative ceiling, it
-    // cannot skip any section of the ray safely.
     if (1.0 <= ConeCeiling(apexUV, apexHeight, rayUV))
         return 0.0;
 
-    return TryIntersectCone(apexUV, apexHeight, rayUV, ds);
+    return TryIntersectCone(apexUV, apexHeight, rayUV, ds, false);
 }
 
 #endif // CONE_STEP_REPROJECTION_INCLUDED
