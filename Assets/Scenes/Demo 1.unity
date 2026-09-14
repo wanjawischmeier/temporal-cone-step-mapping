@@ -691,6 +691,10 @@ PrefabInstance:
       value: 0.6320754
       objectReference: {fileID: 0}
     - target: {fileID: 6881768193720672204, guid: 5e415f68c58c51648bca36a710b48652, type: 3}
+      propertyPath: m_Enabled
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6881768193720672204, guid: 5e415f68c58c51648bca36a710b48652, type: 3}
       propertyPath: m_minZoom
       value: 0.5
       objectReference: {fileID: 0}
@@ -706,6 +710,10 @@ PrefabInstance:
       propertyPath: m_orbitTarget
       value: 
       objectReference: {fileID: 1244520498}
+    - target: {fileID: 6881768193720672204, guid: 5e415f68c58c51648bca36a710b48652, type: 3}
+      propertyPath: m_rotationSharpness
+      value: 10000
+      objectReference: {fileID: 0}
     - target: {fileID: 7949053928233253352, guid: 5e415f68c58c51648bca36a710b48652, type: 3}
       propertyPath: m_Name
       value: Orbit Camera

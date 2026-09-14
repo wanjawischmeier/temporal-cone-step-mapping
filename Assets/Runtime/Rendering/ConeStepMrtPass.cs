@@ -101,9 +101,12 @@ public class ConeStepMrtPass : ScriptableRenderPass
         colorDesc.depthBufferBits = 0;
         colorDesc.graphicsFormat = GraphicsFormat.R8G8B8A8_UNorm;
 
-        bool isRenderToTexture = true; // since we render to MRT texture
-        Matrix4x4 viewMatrix = camera.worldToCameraMatrix;
-        Matrix4x4 projMatrix = GL.GetGPUProjectionMatrix(camera.projectionMatrix, isRenderToTexture);
+        // Get the exact View matrix URP is using (handles Camera Relative Rendering automatically)
+        Matrix4x4 viewMatrix = cameraData.GetViewMatrix();
+
+        // Get the projection matrix and format it for GPU texture rendering
+        Matrix4x4 projMatrix = GL.GetGPUProjectionMatrix(cameraData.GetProjectionMatrix(), true);
+
         Matrix4x4 currentViewProj = projMatrix * viewMatrix;
 
         if (history.isFirstFrame || resetHistory)
@@ -127,11 +130,11 @@ public class ConeStepMrtPass : ScriptableRenderPass
 
             history.RT_A = RTHandles.Alloc(colorDesc.width, colorDesc.height,
                 colorFormat: m_MrtGraphicsFormat,
-                filterMode: m_FilterMode,
+                filterMode: FilterMode.Point,
                 name: $"ConeStepMRT_A_{camera.name}");
             history.RT_B = RTHandles.Alloc(colorDesc.width, colorDesc.height,
                 colorFormat: m_MrtGraphicsFormat,
-                filterMode: m_FilterMode,
+                filterMode: FilterMode.Point,
                 name: $"ConeStepMRT_B_{camera.name}");
         }
 

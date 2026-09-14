@@ -34,6 +34,7 @@ ConeStepResult MarchConservative(
     bestSeed.uv = u0;
     bestSeed.height = 0.0;
     bestSeed.score = 0.0;
+    bestSeed.t = 0.0;
     bestSeed.valid = false;
 
     // PRE-LOAD: Evaluate previous frame's seed before starting the loop.
@@ -42,7 +43,8 @@ ConeStepResult MarchConservative(
     {
         float2 prevApexUV = historyData.xy;
         float prevApexHeight = SampleHeight(prevApexUV, heightMask);
-        ConsiderReprojectionSeed(bestSeed, u0, prevApexUV, prevApexHeight, 0);
+        float prevT = historyData.z; // NEW: Read spatial progress from history
+        ConsiderReprojectionSeed(bestSeed, u0, prevApexUV, prevApexHeight, prevT);
     }
 
     [loop]
@@ -51,7 +53,10 @@ ConeStepResult MarchConservative(
         stepCount++;
         float2 p = u0 + ds.xy * sc;
         float height = SampleHeight(p, heightMask);
-        ConsiderReprojectionSeed(bestSeed, u0, p, height, i);
+            
+        // Pass physical penetration depth ds.z * sc instead of loop counter
+        ConsiderReprojectionSeed(bestSeed, u0, p, height, ds.z * sc);
+            
         error = 1.0 - ds.z * sc - height;
         if (error <= _MinError)
             break;
@@ -70,7 +75,9 @@ ConeStepResult MarchConservative(
     // use this frame's real hit, with validity still controlled by wasHit.
     result.seedUV = bestSeed.valid ? bestSeed.uv : result.uv;
     result.seedHeight = bestSeed.valid ? bestSeed.height : SampleHeight(result.uv, heightMask);
+    result.seedT = bestSeed.valid ? bestSeed.t : result.t; // NEW
     result.seedValid = bestSeed.valid || result.wasHit;
+    return result;
     return result;
 }
 
@@ -162,6 +169,7 @@ ConeStepResult MarchRelaxed(float2 u0, float3 ds, float dominantAxis, float4 con
     result.seedUV = result.uv;
     result.seedHeight = SampleHeight(result.uv, heightMask);
     result.seedValid = result.wasHit;
+    result.seedT = result.t;
     return result;
 }
 

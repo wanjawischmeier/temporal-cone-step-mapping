@@ -117,7 +117,7 @@ Shader "Custom/ConeStepMapping"
                 if (_UseTestTexture)
                 {
                     if (!isHistoryValid) discard; // Seemingly not doing anything
-                    output.color0 = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, historyData.zw) * _BaseColor;
+                    output.color0 = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, historyData.xy) * _BaseColor;
                     output.color1 = historyData;
                     output.depth = 0;
                     return output;
@@ -150,7 +150,8 @@ Shader "Custom/ConeStepMapping"
                 // This is intentionally independent of result.uv, which remains
                 // the actual converged surface hit used for shading and depth.
                 // output.color1 = float4(result.seedUV, result.uv);
-                output.color1 = float4(result.seedUV, startSc == 0.0 ? 0.0 : 1.0, 1.0);
+                // output.color1 = float4(result.seedUV, startSc == 0.0 ? 0.0 : 1.0, 1.0);
+                output.color1 = float4(result.seedUV, result.seedT, 1.0);
                 output.depth = result.t > 0.999 ? 0 : result.t;
 
                 bool outOfBounds = result.uv.x < 0.0 || result.uv.x > 1.0 ||

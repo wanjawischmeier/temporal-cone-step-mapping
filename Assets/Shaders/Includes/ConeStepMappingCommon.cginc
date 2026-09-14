@@ -45,6 +45,7 @@ struct ConeStepResult
     float2 seedUV;
     float seedHeight;
     bool seedValid;
+    float seedT;
 };
 
 // Candidate retained while conservative marching. It is deliberately separate
@@ -55,6 +56,7 @@ struct ReprojectionSeed
     float height;
     float score;
     bool valid;
+    float t;
 };
 
 // --- Textures & Samplers ---
@@ -151,7 +153,7 @@ float SampleConeRatio(float2 uv, float4 coneChannelMask)
 static const float kUnwrittenConeRatio = 1000.0;
 
 void ConsiderReprojectionSeed(inout ReprojectionSeed best, float2 originUV,
-    float2 apexUV, float apexHeight, int iteration)
+    float2 apexUV, float apexHeight, float currentT)
 {
     float2 apexToOrigin = originUV - apexUV;
     float ratio = SampleConeRatio(apexUV, GetConeChannelMask(apexToOrigin));
@@ -162,7 +164,8 @@ void ConsiderReprojectionSeed(inout ReprojectionSeed best, float2 originUV,
     if (margin <= 0.0)
         return;
 
-    float progress = iteration / max(_MaxIterations, 1.0);
+    // Progress is now physical depth [0,1], completely immune to skipped steps
+    float progress = saturate(currentT);
     float score = _ReprojectionMarginWeight * margin + _ReprojectionProgressWeight * progress;
 
     if (score > 0.0 && (!best.valid || score > best.score))
@@ -170,6 +173,7 @@ void ConsiderReprojectionSeed(inout ReprojectionSeed best, float2 originUV,
         best.uv = apexUV;
         best.height = apexHeight;
         best.score = score;
+        best.t = currentT; // NEW
         best.valid = true;
     }
 }
