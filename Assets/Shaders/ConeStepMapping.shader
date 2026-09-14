@@ -107,26 +107,25 @@ Shader "Custom/ConeStepMapping"
 
                 float2 prevScreenUV = IN.prevScreenPos.xy / IN.prevScreenPos.w;
                 float4 historyData = SAMPLE_TEXTURE2D(_PreviousFrame, sampler_PreviousFrame, prevScreenUV);
-
-                if (_UseTestTexture)
-                {
-                    output.color0 = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, historyData.xy) * _BaseColor;
-                    output.color1 = historyData;
-                    output.depth = 0;
-                    return output;
-                }
                 
                 bool isHistoryValid = _UseHistory > 0.5 && _UseRelaxedCone <= 0.5 &&
                                       prevScreenUV.x >= 0.0 && prevScreenUV.x <= 1.0 &&
                                       prevScreenUV.y >= 0.0 && prevScreenUV.y <= 1.0 &&
                                       historyData.x >= 0.0 && historyData.x <= 1.0 &&
                                       historyData.y >= 0.0 && historyData.y <= 1.0;
+                
+                if (_UseTestTexture)
+                {
+                    if (!isHistoryValid) discard; // Seemingly not doing anything
+                    output.color0 = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, historyData.zw) * _BaseColor;
+                    output.color1 = historyData;
+                    output.depth = 0;
+                    return output;
+                }
 
                 bool didCameraMove = length(IN.screenPos - IN.prevScreenPos) > 1e-5 || true;
 
                 float startSc = GetStartSc(historyData, prevScreenUV, IN.uv, ds, heightMask, isHistoryValid, didCameraMove);
-
-                // Duplicate the validity check from GetStartSc so we can pass it to the loop
 
                 ConeStepResult result;
                 if (_UseRelaxedCone > 0.5)
@@ -150,7 +149,8 @@ Shader "Custom/ConeStepMapping"
                 // R, G = best reprojection apex UV, B = its height, A = valid.
                 // This is intentionally independent of result.uv, which remains
                 // the actual converged surface hit used for shading and depth.
-                output.color1 = float4(result.seedUV, result.uv);
+                // output.color1 = float4(result.seedUV, result.uv);
+                output.color1 = float4(result.seedUV, startSc == 0.0 ? 0.0 : 1.0, 1.0);
                 output.depth = result.t > 0.999 ? 0 : result.t;
 
                 bool outOfBounds = result.uv.x < 0.0 || result.uv.x > 1.0 ||

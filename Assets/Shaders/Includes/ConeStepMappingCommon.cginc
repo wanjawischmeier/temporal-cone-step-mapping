@@ -155,16 +155,10 @@ void ConsiderReprojectionSeed(inout ReprojectionSeed best, float2 originUV,
 {
     float2 apexToOrigin = originUV - apexUV;
     float ratio = SampleConeRatio(apexUV, GetConeChannelMask(apexToOrigin));
-    if (ratio >= kUnwrittenConeRatio)
-        return;
 
     float dominantDistance = max(abs(apexToOrigin.x), abs(apexToOrigin.y));
-    
-    // Calculate the raw margin without clamping it to 0
     float margin = 1.0 - (apexHeight + dominantDistance / max(ratio, 1e-6));
-    
-    // HARD REJECT: If the cone ceiling breaches the Z=1.0 plane, it is 
-    // mathematically guaranteed to fail next frame's GetStartSc rejection check.
+
     if (margin <= 0.0)
         return;
 

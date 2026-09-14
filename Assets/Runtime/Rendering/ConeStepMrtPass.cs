@@ -58,6 +58,15 @@ public class ConeStepMrtPass : ScriptableRenderPass
             ? history.stepCount.rt : null;
     }
 
+    public static RenderTexture GetMrt1Texture(Camera camera)
+    {
+        if (camera == null || !s_Histories.TryGetValue(camera, out var history))
+            return null;
+        bool useTextureA = history.passIndex == 0;
+        var written = useTextureA ? history.RT_A : history.RT_B; // flip both branches if this checks out backwards
+        return written?.rt;
+    }
+
     /// <summary>
     /// Invalidates both ping-pong history targets before this camera's next cone
     /// pass. The request is executed inside the render graph, so it remains
@@ -160,7 +169,7 @@ public class ConeStepMrtPass : ScriptableRenderPass
         };
         var writeImportParams = new ImportResourceParams
         {
-            clearOnFirstUse = resetHistory,
+            clearOnFirstUse = true,
             clearColor = Color.clear,
             discardOnLastUse = false
         };
