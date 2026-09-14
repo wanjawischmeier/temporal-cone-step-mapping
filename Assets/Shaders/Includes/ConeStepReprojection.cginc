@@ -44,24 +44,24 @@ bool TryIntersectConeFace(float2 apexUV, float apexHeight, float2 rayUV, float3 
     float2 delta0 = rayUV - apexUV;
     bool xFace = face < 2;
     float sign = (face == 0 || face == 2) ? 1.0 : -1.0;
-    float signedDelta0 = sign * (xFace ? delta0.x : delta0.y);
-    if (signedDelta0 < 0.0)
-        return false;
     
+    // Calculate relative positions and directions
+    float signedDelta0 = sign * (xFace ? delta0.x : delta0.y);
     float signedRayDelta = sign * (xFace ? ds.x : ds.y);
     float ratio = SampleConeRatio(apexUV, ConeFaceMask(face));
 
-    // 1 - ds.z * sc = apexHeight +
-    //                  (signedDelta0 + signedRayDelta * sc) / ratio.
-    // A positive denominator means the ray approaches this face.
     float safeRatio = max(ratio, 1e-6);
     float denominator = ds.z + signedRayDelta / safeRatio;
     float numerator = 1.0 - apexHeight - signedDelta0 / safeRatio;
+    
+    // Calculate intersection
     intersectionSc = numerator / denominator;
 
+    // Filter out divide-by-zero, negative intersections (ray moving away), or parallel rays
     if (ratio <= 1e-6 || denominator <= 1e-6 || intersectionSc <= 0.0 || !isfinite(intersectionSc))
         return false;
 
+    // Rely exclusively on the 2D bounding check at the actual intersection point
     return IsInsideConeFace(delta0 + ds.xy * intersectionSc, face);
 }
 

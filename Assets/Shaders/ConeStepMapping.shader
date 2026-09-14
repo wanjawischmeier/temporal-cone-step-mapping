@@ -136,13 +136,13 @@ Shader "Custom/ConeStepMapping"
                 {
                     result = MarchConservative(IN.uv, ds, dominantAxis, coneChannelMask, heightMask, startSc, minStep, historyData, isHistoryValid);
                 }
-
+                /*
                 if (!result.seedValid)
                 {
                     result.uv = float2(-1, -1);
                     result.seedUV = float2(-1, -1);
                 }
-
+                */
                 output.stepCount = result.steps;
 
                 // Write our current state to MRT1 for the next frame.
@@ -157,7 +157,7 @@ Shader "Custom/ConeStepMapping"
                 bool outOfBounds = result.uv.x < 0.0 || result.uv.x > 1.0 ||
                                     result.uv.y < 0.0 || result.uv.y > 1.0;
 
-                if (!result.wasHit || outOfBounds)
+                if (outOfBounds)
                 {
                     discard;
                     output.color0 = float4(1, 0, 0, 1);

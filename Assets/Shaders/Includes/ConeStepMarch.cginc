@@ -78,7 +78,6 @@ ConeStepResult MarchConservative(
     result.seedT = bestSeed.valid ? bestSeed.t : result.t; // NEW
     result.seedValid = bestSeed.valid || result.wasHit;
     return result;
-    return result;
 }
 
 // --- Relaxed cone stepping ---
