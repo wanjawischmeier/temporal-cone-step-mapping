@@ -43,8 +43,10 @@ ConeStepResult MarchConservative(
     {
         float2 prevApexUV = historyData.xy;
         float prevApexHeight = SampleHeight(prevApexUV, heightMask);
-        float prevT = historyData.z; // NEW: Read spatial progress from history
-        ConsiderReprojectionSeed(bestSeed, u0, prevApexUV, prevApexHeight, prevT);
+        // Reevaluate the seed's progress based on how far it actually advances THIS frame's ray
+        float currentUtilityT = ds.z * startSc;
+        
+        ConsiderReprojectionSeed(bestSeed, u0, prevApexUV, prevApexHeight, currentUtilityT);
     }
 
     [loop]

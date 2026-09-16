@@ -81,7 +81,64 @@ float TryIntersectCone(float2 apexUV, float apexHeight, float2 rayUV, float3 ds,
         }
     }
 
-    return found ? bestSc : 0.0;
+    if (!found)
+        return 0.0;
+
+    // --- ANTI-TUNNELING CLIFF CHECK ---
+    // The anisotropic bounding volume has discontinuous "cliffs" at the diagonals (y = x, y = -x).
+    // A ray can mathematically intersect a face validly, but tunnel through a cliff to get there.
+    // We must clamp the ray if it hits a cliff mid-flight.
+    
+    float2 delta0 = rayUV - apexUV;
+    
+    // Check Diagonal 1: y = x  =>  delta.x - delta.y = 0
+    float dy_minus_dx = ds.y - ds.x;
+    if (abs(dy_minus_dx) > 1e-6)
+    {
+        float sc = (delta0.x - delta0.y) / dy_minus_dx;
+        if (sc > 0.0 && sc < bestSc)
+        {
+            float rayZ = 1.0 - ds.z * sc;
+            float2 p = delta0 + ds.xy * sc;
+            float dist = abs(p.x);
+            
+            int faceX = p.x >= 0.0 ? 0 : 1;
+            int faceY = p.y >= 0.0 ? 2 : 3;
+            float rX = max(SampleConeRatio(apexUV, ConeFaceMask(faceX)), 1e-6);
+            float rY = max(SampleConeRatio(apexUV, ConeFaceMask(faceY)), 1e-6);
+            
+            // The bounding volume height at the cliff is the max of the two adjacent faces
+            float cliffZ = apexHeight + dist / min(rX, rY);
+            
+            if (rayZ < cliffZ)
+                bestSc = sc; // Clamped by cliff collision
+        }
+    }
+
+    // Check Diagonal 2: y = -x  =>  delta.x + delta.y = 0
+    float dy_plus_dx = ds.y + ds.x;
+    if (abs(dy_plus_dx) > 1e-6)
+    {
+        float sc = -(delta0.x + delta0.y) / dy_plus_dx;
+        if (sc > 0.0 && sc < bestSc)
+        {
+            float rayZ = 1.0 - ds.z * sc;
+            float2 p = delta0 + ds.xy * sc;
+            float dist = abs(p.x);
+            
+            int faceX = p.x >= 0.0 ? 0 : 1;
+            int faceY = p.y >= 0.0 ? 2 : 3;
+            float rX = max(SampleConeRatio(apexUV, ConeFaceMask(faceX)), 1e-6);
+            float rY = max(SampleConeRatio(apexUV, ConeFaceMask(faceY)), 1e-6);
+            
+            float cliffZ = apexHeight + dist / min(rX, rY);
+            
+            if (rayZ < cliffZ)
+                bestSc = sc; // Clamped by cliff collision
+        }
+    }
+
+    return bestSc;
 }
 
 float GetStartSc(float4 historyData, float2 prevScreenUV, float2 rayUV, float3 ds, float4 heightMask, bool isHistoryValid, bool didCameraMove)

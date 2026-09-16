@@ -636,19 +636,19 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4123537819610902499, guid: 5e415f68c58c51648bca36a710b48652, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0.42261827
+      value: 0.5224986
       objectReference: {fileID: 0}
     - target: {fileID: 4123537819610902499, guid: 5e415f68c58c51648bca36a710b48652, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -0.90630776
+      value: -0.85264015
       objectReference: {fileID: 0}
     - target: {fileID: 4123537819610902499, guid: 5e415f68c58c51648bca36a710b48652, type: 3}
       propertyPath: m_LocalRotation.w
-      value: 0.976296
+      value: 0.9624553
       objectReference: {fileID: 0}
     - target: {fileID: 4123537819610902499, guid: 5e415f68c58c51648bca36a710b48652, type: 3}
       propertyPath: m_LocalRotation.x
-      value: 0.21643962
+      value: 0.27144048
       objectReference: {fileID: 0}
     - target: {fileID: 4123537819610902499, guid: 5e415f68c58c51648bca36a710b48652, type: 3}
       propertyPath: m_LocalRotation.y
@@ -692,7 +692,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6881768193720672204, guid: 5e415f68c58c51648bca36a710b48652, type: 3}
       propertyPath: m_Enabled
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6881768193720672204, guid: 5e415f68c58c51648bca36a710b48652, type: 3}
       propertyPath: m_minZoom
@@ -773,7 +773,7 @@ MonoBehaviour:
   targetCamera: {fileID: 770670032}
   rawImage: {fileID: 115857067}
   debugShader: {fileID: 4800000, guid: 7f898c4162d2caf4aa5dccc9d91da6e6, type: 3}
-  showValue: 0
+  showValue: 1
   normalizeMin: 0
   normalizeMax: 1
 --- !u!1 &1244520494
@@ -1291,7 +1291,7 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
-  m_IsOn: 0
+  m_IsOn: 1
 --- !u!1 &1643381625
 GameObject:
   m_ObjectHideFlags: 0
