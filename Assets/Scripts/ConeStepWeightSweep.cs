@@ -89,6 +89,8 @@ public sealed class ConeStepWeightSweep : MonoBehaviour
 
     IEnumerator RunSweep()
     {
+        yield return new WaitForSeconds(1f);
+
         if (reductionShader == null || targetMaterial == null || targetCamera == null)
         {
             Debug.LogError("[ConeStepWeightSweep] Missing reductionShader, targetMaterial, or targetCamera.");
