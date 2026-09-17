@@ -407,7 +407,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7949053928575550498}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: eab20e05a357f20449228fa447181c6f, type: 3}
   m_Name: 
@@ -792,8 +792,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SimpleRotationLoop
   startRotation: {x: 0, y: 0, z: 0}
-  endRotation: {x: 0, y: 5, z: 0}
-  halfCycleFrames: 10
+  endRotation: {x: 0, y: 10, z: 0}
+  halfCycleFrames: 50
 --- !u!81 &1861851436086300128
 AudioListener:
   m_ObjectHideFlags: 0
@@ -854,13 +854,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7949053928575550498}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.334852, y: 0.20060633, z: -0.07319321, w: 0.91775495}
-  m_LocalPosition: {x: -0.21, y: 0.38, z: -0.6}
+  m_LocalRotation: {x: 0.45786068, y: 0.25618446, z: -0.13967626, w: 0.83977604}
+  m_LocalPosition: {x: -0.26, y: 0.58, z: -0.46}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1845974204}
-  m_LocalEulerAnglesHint: {x: 40.09, y: 24.66, z: 0}
+  m_LocalEulerAnglesHint: {x: 57.2, y: 33.93, z: 0}
 --- !u!20 &4666819047957649521
 Camera:
   m_ObjectHideFlags: 0
@@ -925,6 +925,7 @@ GameObject:
   - component: {fileID: 1861851436086300128}
   - component: {fileID: 3743204761161549463}
   - component: {fileID: 770670029}
+  - component: {fileID: 7949053928575550501}
   - component: {fileID: 7949053928575550499}
   - component: {fileID: 7949053928575550500}
   m_Layer: 0
@@ -971,6 +972,32 @@ MonoBehaviour:
   heatmapMaximum: 64
   smoothHeatmap: 0
   smoothFrameCount: 30
+--- !u!114 &7949053928575550501
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7949053928575550498}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 40ff2c79827be5840938792862fc401b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ConeStepMarginSweep
+  reductionShader: {fileID: 7200000, guid: a1b2c3d4e5f6478899aabbccddeeff01, type: 3}
+  targetMaterial: {fileID: 2100000, guid: 3fdef35811bd71841a4cc97d4698e456, type: 2}
+  targetCamera: {fileID: 4666819047957649521}
+  marginWeightMin: 0.01
+  marginWeightMax: 1
+  fixedProgressWeight: 1
+  sampleCount: 40
+  warmupFrames: 100
+  samplesPerPoint: 100
+  sampleDelayFrames: 2
+  historyResetFrames: 2
+  outputFileName: cone_step_sweep_moving_r40_1d_6.csv
+  startOnPlay: 1
+  logProgressToConsole: 1
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
