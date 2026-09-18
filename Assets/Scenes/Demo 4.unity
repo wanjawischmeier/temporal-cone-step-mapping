@@ -2115,8 +2115,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7949053928575550498}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.54992753, y: 0.090115145, z: -0.059838366, w: 0.82817775}
-  m_LocalPosition: {x: 0, y: 0.58, z: -0.4}
+  m_LocalRotation: {x: 0.4973525, y: 0, z: 0, w: 0.8675486}
+  m_LocalPosition: {x: 0, y: 0.58, z: -0.8}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -2247,15 +2247,15 @@ MonoBehaviour:
   reductionShader: {fileID: 7200000, guid: a1b2c3d4e5f6478899aabbccddeeff01, type: 3}
   targetMaterial: {fileID: 2100000, guid: 3fdef35811bd71841a4cc97d4698e456, type: 2}
   targetCamera: {fileID: 4666819047957649521}
-  startTransform: {fileID: 497732815}
-  endTransform: {fileID: 1896242425}
+  startTransform: {fileID: 1180947544}
+  endTransform: {fileID: 1160782746}
   animatePosition: 1
   animateRotation: 1
   minFrames: 2
-  maxFrames: 50
-  speedSteps: 5
+  maxFrames: 100
+  speedSteps: 20
   runsPerMeasurement: 4
-  outputFileName: cone_step_velocity_sweep_position_21.csv
+  outputFileName: cone_step_velocity_sweep_position_24.csv
   startOnPlay: 1
   frameTimeMode: 1
 --- !u!1660057539 &9223372036854775807

@@ -33,7 +33,7 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _ConeMap:
-        m_Texture: {fileID: 2800000, guid: bc9e3c11a2542d44b910d32d06365995, type: 2}
+        m_Texture: {fileID: 2800000, guid: 0b11a3f149395e946b917c2a0946650a, type: 2}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _DetailAlbedoMap:
@@ -53,7 +53,7 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _HeightMap:
-        m_Texture: {fileID: 2800000, guid: 8800628915b3a9d439e73de4bea255e8, type: 3}
+        m_Texture: {fileID: 2800000, guid: 9ff3c2b69e9241e4b93a1b402eed9ccd, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _MainTex:
@@ -123,7 +123,7 @@ Material:
     - _QueueOffset: 0
     - _ReceiveShadows: 1
     - _Relax: 1
-    - _ReprojectionMarginWeight: 0.2
+    - _ReprojectionMarginWeight: 0.1
     - _ReprojectionProgressWeight: 1
     - _Smoothness: 0.5
     - _SmoothnessTextureChannel: 0
