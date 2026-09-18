@@ -36,12 +36,22 @@ public sealed class ConeStepVelocityProfiler : MonoBehaviour
     [Tooltip("How many full animation runs to average together per speed setting.")]
     [SerializeField, Min(1)] int runsPerMeasurement = 4;
 
+    [Header("Margin Weight Sweep")]
+    [Tooltip("_ReprojectionMarginWeight paired with minFrames - i.e. at sweep index 0. " +
+             "Leave marginWeightMin == marginWeightMax (default) to keep the weight fixed and " +
+             "sweep only frame count, as before. To sweep margin weight instead of speed, set " +
+             "minFrames == maxFrames and give marginWeightMin/Max a real range - both sweeps " +
+             "share the same speedSteps index, so either (or both at once) can vary.")]
+    [SerializeField] float marginWeightMin = 1f;
+    [SerializeField] float marginWeightMax = 1f;
+
     [Header("Output")]
     [SerializeField] string outputFileName = "cone_step_velocity_sweep.csv";
     [SerializeField] bool startOnPlay = true;
     [SerializeField] FrameTimeMode frameTimeMode;
 
     const string UseHistoryProperty = "_UseHistory";
+    const string MarginWeightProperty = "_ReprojectionMarginWeight";
     GraphicsBuffer m_TotalSteps;
     int m_Kernel;
     bool m_Running;
@@ -91,13 +101,20 @@ public sealed class ConeStepVelocityProfiler : MonoBehaviour
 
         using (var writer = new StreamWriter(path, false))
         {
-            writer.WriteLine("total_frames,speed,history_on_steps,history_off_steps,history_on_time_ms,history_off_time_ms");
+            writer.WriteLine("total_frames,speed,margin_weight,history_on_steps,history_off_steps,history_on_time_ms,history_off_time_ms");
 
             for (int i = 0; i < speedSteps; i++)
             {
                 float t = speedSteps == 1 ? 0f : i / (float)(speedSteps - 1);
                 int totalFrames = Mathf.RoundToInt(Mathf.Lerp(minFrames, maxFrames, t));
                 float speed = 1.0f / totalFrames;
+                float marginWeight = Mathf.Lerp(marginWeightMin, marginWeightMax, t);
+
+                // Shared by both the history-on and history-off measurements below - the weight
+                // only actually influences behavior while history is on, but we set it
+                // unconditionally so the CSV's margin_weight column always reflects what was
+                // configured for this row, regardless of history state.
+                targetMaterial.SetFloat(MarginWeightProperty, marginWeight);
 
                 var onResult = new MeasurementResult();
                 yield return RunMeasurementSet(totalFrames, runsPerMeasurement, true, onResult);
@@ -106,12 +123,12 @@ public sealed class ConeStepVelocityProfiler : MonoBehaviour
                 yield return RunMeasurementSet(totalFrames, runsPerMeasurement, false, offResult);
 
                 writer.WriteLine(string.Format(CultureInfo.InvariantCulture,
-                    "{0},{1:R},{2:R},{3:R},{4:R},{5:R}",
-                    totalFrames, speed, onResult.avgTotalSteps, offResult.avgTotalSteps, onResult.avgTotalTimeMs, offResult.avgTotalTimeMs));
+                    "{0},{1:R},{2:R},{3:R},{4:R},{5:R},{6:R}",
+                    totalFrames, speed, marginWeight, onResult.avgTotalSteps, offResult.avgTotalSteps, onResult.avgTotalTimeMs, offResult.avgTotalTimeMs));
                 writer.Flush();
 
                 double reduction = 1.0 - (onResult.avgTotalSteps / offResult.avgTotalSteps);
-                Debug.Log($"[Profiler] Frames: {totalFrames} | History: {onResult.avgTotalSteps:N0} vs {offResult.avgTotalSteps:N0} steps | Reduction: {reduction:P2}");
+                Debug.Log($"[Profiler] Frames: {totalFrames} | Margin: {marginWeight:F3} | History: {onResult.avgTotalSteps:N0} vs {offResult.avgTotalSteps:N0} steps | Reduction: {reduction:P2}");
             }
         }
 

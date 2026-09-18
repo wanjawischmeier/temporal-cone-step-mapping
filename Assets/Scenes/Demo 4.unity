@@ -2251,11 +2251,13 @@ MonoBehaviour:
   endTransform: {fileID: 1160782746}
   animatePosition: 1
   animateRotation: 1
-  minFrames: 2
-  maxFrames: 100
-  speedSteps: 20
+  minFrames: 10
+  maxFrames: 10
+  speedSteps: 100
   runsPerMeasurement: 4
-  outputFileName: cone_step_velocity_sweep_position_24.csv
+  marginWeightMin: 0.001
+  marginWeightMax: 1
+  outputFileName: cone_step_velocity_sweep_position_28.csv
   startOnPlay: 1
   frameTimeMode: 1
 --- !u!1660057539 &9223372036854775807
