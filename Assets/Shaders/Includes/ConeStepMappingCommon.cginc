@@ -89,6 +89,7 @@ CBUFFER_START(UnityPerMaterial)
     float _ReprojectionMarginWeight;
     float _ReprojectionProgressWeight;
     float _UseTestTexture;
+    int _ConeStepCostOffset;
 CBUFFER_END
 
 // Declared outside the per-material CBUFFER to stay SRP-batcher compatible,

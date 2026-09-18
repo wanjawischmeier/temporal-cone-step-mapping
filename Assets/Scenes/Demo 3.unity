@@ -995,7 +995,7 @@ MonoBehaviour:
   samplesPerPoint: 100
   sampleDelayFrames: 2
   historyResetFrames: 2
-  outputFileName: cone_step_sweep_moving_r40_1d_6.csv
+  outputFileName: cone_step_sweep_moving_r40_1d_7.csv
   startOnPlay: 1
   logProgressToConsole: 1
 --- !u!1660057539 &9223372036854775807

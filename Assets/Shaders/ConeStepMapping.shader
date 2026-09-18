@@ -37,6 +37,7 @@ Shader "Custom/ConeStepMapping"
         _ReprojectionMarginWeight("Reprojection Margin Weight", Float) = 1.0
         _ReprojectionProgressWeight("Reprojection Progress Weight", Float) = 1.0
         [Toggle] _UseTestTexture("Use Test Texture", Float) = 0
+        _ConeStepCostOffset("Cone Step Cost Offset", Integer) = 0
     }
 
     SubShader

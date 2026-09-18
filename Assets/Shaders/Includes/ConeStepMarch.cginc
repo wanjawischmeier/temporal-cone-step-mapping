@@ -55,7 +55,17 @@ ConeStepResult MarchConservative(
         stepCount++;
         float2 p = u0 + ds.xy * sc;
         float height = SampleHeight(p, heightMask);
-            
+        
+        
+        float dummy = 0;
+        for (int j = 0; j < _ConeStepCostOffset; j++)
+        {
+            dummy += sin(float(j) * 0.01 + ds.x);
+        }
+        // Use dummy so it doesn’t get optimized away
+        if (dummy < 0 && _ConeStepCostOffset > 0)
+            break;
+        
         // Pass physical penetration depth ds.z * sc instead of loop counter
         ConsiderReprojectionSeed(bestSeed, u0, p, height, ds.z * sc);
             
